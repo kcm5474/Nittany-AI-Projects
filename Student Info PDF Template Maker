@@ -1,0 +1,125 @@
+// ==UserScript==
+// @name         Student Info PDF Template Maker
+// @namespace    http://tampermonkey.net/
+// @version      2.0
+// @description  Fetch GPA, user ID, numeric ID, and classes, display them in a grid and generate a PDF with a button click
+// @author       Kyle Marko
+// @match        https://sites.psu.edu/kcm5474/student-gpa-page/
+// @grant        GM_download
+// @grant        GM_addStyle
+// @require      https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js
+// ==/UserScript==
+// This Script is an example script that could automate filling out Academic advisor intate forms.
+
+(function() {
+    'use strict';
+
+    // Fetching the data from the page
+    const gpa = document.querySelector("#gpa") ? document.querySelector("#gpa").innerText : 'Not Found';
+    const user_id = document.querySelector("#user_id") ? document.querySelector("#user_id").innerText : 'Not Found';
+    const numeric_id = document.querySelector("#numeric_id") ? document.querySelector("#numeric_id").innerText : 'Not Found';
+    const classesList = document.querySelector("#post-4 > div > ul");
+    const classes = classesList ? Array.from(classesList.querySelectorAll('li')).map(li => li.innerText) : [];
+
+    // Add CSS for grid layout and button style
+    GM_addStyle(`
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .info-grid div {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #generate-pdf-btn {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            text-align: center;
+        }
+        #generate-pdf-btn:hover {
+            background-color: #45a049;
+        }
+    `);
+
+    // Create the grid to display the info
+    const gridContainer = document.createElement('div');
+    gridContainer.classList.add('info-grid');
+
+    const gpaDiv = document.createElement('div');
+    gpaDiv.innerHTML = `<strong>GPA:</strong> ${gpa}`;
+    gridContainer.appendChild(gpaDiv);
+
+    const userIdDiv = document.createElement('div');
+    userIdDiv.innerHTML = `<strong>User ID:</strong> ${user_id}`;
+    gridContainer.appendChild(userIdDiv);
+
+    const numericIdDiv = document.createElement('div');
+    numericIdDiv.innerHTML = `<strong>Numeric ID:</strong> ${numeric_id}`;
+    gridContainer.appendChild(numericIdDiv);
+
+    const classesDiv = document.createElement('div');
+    classesDiv.innerHTML = `<strong>Classes:</strong><ul>${classes.map(className => `<li>${className}</li>`).join('')}</ul>`;
+    gridContainer.appendChild(classesDiv);
+
+    // Create the "Generate PDF" button
+    const generateBtn = document.createElement('button');
+    generateBtn.id = 'generate-pdf-btn';
+    generateBtn.innerText = 'Generate PDF';
+
+    generateBtn.addEventListener('click', () => {
+        // Create a PDF using jsPDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Adding title
+        doc.setFontSize(18);
+        doc.text('Student Information', 20, 20);
+
+        // Add GPA
+        doc.setFontSize(12);
+        doc.text(`GPA: ${gpa}`, 20, 40);
+
+        // Add User ID
+        doc.text(`User ID: ${user_id}`, 20, 50);
+
+        // Add Numeric ID
+        doc.text(`Numeric ID: ${numeric_id}`, 20, 60);
+
+        // Add Classes
+        doc.text('Classes:', 20, 70);
+        classes.forEach((className, index) => {
+            doc.text(`${index + 1}. ${className}`, 20, 80 + (index * 10));
+        });
+
+        // Save the PDF
+        doc.save('student_info.pdf');
+    });
+
+    // Find the first div on the page and append the button at the top of that div
+    const firstDiv = document.querySelector("#post-4 > div > h1");
+
+    if (firstDiv) {
+    // Set the styles for firstDiv to be a flex container
+    firstDiv.style.display = 'flex';
+    firstDiv.style.alignItems = 'center'; // Align items vertically if needed
+    firstDiv.style.gap = '10px'; // Adds space between the div and the button
+
+    // Append the button
+    firstDiv.append(generateBtn);
+}
+
+
+    // Append the grid to the document body or to a specific place where you want the information to be
+    document.body.appendChild(gridContainer);
+
+})();
